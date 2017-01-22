@@ -3,10 +3,10 @@ machine:
     version: oraclejdk8
   timezone:
     Asia/Tokyo
-
+    
 dependencies:
-  pre:
-    - chmod -x ./gradlew
+  override:
+     - chmod +x gradlew
 
 test:
   post:
