@@ -10,6 +10,6 @@ dependencies:
 
 test:
   override:
-    - gradle build jacocoTestReport
+    - ./gradlew build jacocoTestReport
   post:
     - cp -r build/reports/* $CIRCLE_TEST_REPORTS/
