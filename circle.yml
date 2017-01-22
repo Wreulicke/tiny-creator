@@ -9,5 +9,7 @@ dependencies:
      - chmod +x gradlew
 
 test:
+  override:
+    - gradlew build jacocoTestReport
   post:
     - cp -r build/reports/* $CIRCLE_TEST_REPORTS/
