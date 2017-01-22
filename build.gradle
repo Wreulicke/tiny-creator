@@ -1,0 +1,16 @@
+apply plugin: 'java'
+apply plugin: 'jacoco'
+
+apply plugin: 'eclipse'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.assertj:assertj-core:3.2.0'
+    
+    compileOnly  'org.projectlombok:lombok:1.16.4'
+    testCompileOnly   'org.projectlombok:lombok:1.16.4'
+}
