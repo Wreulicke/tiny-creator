@@ -1,10 +1,31 @@
 apply plugin: 'java'
 apply plugin: 'jacoco'
-
+apply plugin: 'com.diffplug.gradle.spotless'
 apply plugin: 'eclipse'
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.diffplug.spotless:spotless-plugin-gradle:3.0.0'
+    }
+}
 
 repositories {
     mavenCentral()
+}
+
+spotless {
+    def headerFile = "/** "+project.file('LICENSE.md').text+"*/"
+
+    java {
+        licenseHeader headerFile, '(package|import) '
+        eclipseFormatFile project.file('eclipse-format-setting.xml')
+
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
 }
 
 dependencies {
