@@ -21,23 +21,39 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.github.wreulicke;
+package com.github.wreulicke.prop;
 
-import java.lang.reflect.Constructor;
-import java.util.Arrays;
+import java.io.File;
+import java.net.URI;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
+import java.util.TimeZone;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 
-public class TinyCreator {
+import com.github.wreulicke.prop.internal.UnsafeSuppliers;
 
-  @SuppressWarnings("unchecked")
-  public <T> T create(Class<T> clazz, Map<String, ?> parameter) {
-    Constructor<T>[] ctors = (Constructor<T>[]) clazz.getConstructors();
-    MapConstructor<T> mapConstructor = new MapConstructor<>(parameter);
-    Optional<Constructor<T>> constructor = Arrays.stream(ctors)
-      .filter(mapConstructor::available)
-      .findFirst();
-    return constructor.map(mapConstructor::create)
-      .orElseThrow(() -> new RuntimeException("cannot instantiate"));
+public class PropertyCreator {
+  private static Map<Class<?>, Function<String, ?>> supplerMap = new HashMap<>();
+  static {
+    supplerMap.put(Path.class, Paths::get);
+    supplerMap.put(File.class, File::new);
+    supplerMap.put(String.class, (s) -> s);
+    supplerMap.put(URL.class, UnsafeSuppliers.unsafed(URL::new));
+    supplerMap.put(URI.class, UnsafeSuppliers.unsafed(URI::new));
+    supplerMap.put(Pattern.class, Pattern::compile);
+    supplerMap.put(Locale.class, Locale::new);
+    supplerMap.put(TimeZone.class, TimeZone::getTimeZone);
+  }
+
+  public <T> T create(Class<T> interfaceType) {
+    if (!interfaceType.isInterface()) {
+      throw new RuntimeException("cannot create. use interface");
+    }
+    return null;
   }
 }

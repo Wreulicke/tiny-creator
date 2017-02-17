@@ -21,41 +21,43 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.github.wreulicke;
+package com.github.wreulicke.prop.internal;
 
-import java.beans.ConstructorProperties;
-import java.lang.reflect.Constructor;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.lang.reflect.Field;
+import java.util.function.Function;
 
-public class ConstructionInfo<T> {
-  public final String[] names;
-  public final Map<String, Class<?>> namedType;
+import sun.misc.Unsafe;
 
-  public ConstructionInfo(Constructor<T> constructor) {
-    ConstructorProperties properties = Objects.requireNonNull(constructor.getAnnotation(ConstructorProperties.class),
-      "construction target is not annotated ConstructorProperties");
+public class UnsafeSuppliers {
+  private final static Unsafe unsafe;
 
-    String[] names = properties.value();
-
-    namedType = new HashMap<>();
-
-    Class<?>[] types = constructor.getParameterTypes();
-    for (int i = 0; i < names.length; i++) {
-      namedType.put(names[i], types[i]);
+  static {
+    try {
+      Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+      unsafeField.setAccessible(true);
+      unsafe = (Unsafe) unsafeField.get(null);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
-
-    this.names = names;
   }
 
-  public Class<?> getType(String name) {
-    return Objects.requireNonNull(namedType.get(name), "cannot find name:" + name + "type");
+  public static <A, B> Function<A, B> unsafed(UnsafedFunction<A, B, Exception> d) {
+    return d;
   }
 
-  public <E> boolean isAssignable(String name, Object element) {
-    return getType(name).isInstance(element);
+  @FunctionalInterface
+  public static interface UnsafedFunction<T, R, E extends Exception> extends Function<T, R> {
+    public R applyInternal(T t) throws E;
+
+    @Override
+    default R apply(T t) {
+      try {
+        return applyInternal(t);
+      } catch (Exception e) {
+        unsafe.throwException(e);
+      }
+      // Not Reach
+      return null;
+    };
   }
-
-
 }

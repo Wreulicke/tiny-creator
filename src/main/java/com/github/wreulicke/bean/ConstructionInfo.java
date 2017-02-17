@@ -21,40 +21,41 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.github.wreulicke;
+package com.github.wreulicke.bean;
 
+import java.beans.ConstructorProperties;
 import java.lang.reflect.Constructor;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.Objects;
 
-import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
+public class ConstructionInfo<T> {
+  public final String[] names;
+  public final Map<String, Class<?>> namedType;
 
-@RequiredArgsConstructor
-public class MapConstructor<T> {
-  private final Map<String, ?> parameter;
-  private final Map<Constructor<T>, ConstructionInfo<T>> cache = new WeakHashMap<>();
+  public ConstructionInfo(Constructor<T> constructor) {
+    ConstructorProperties properties = Objects.requireNonNull(constructor.getAnnotation(ConstructorProperties.class),
+      "construction target is not annotated ConstructorProperties");
 
-  public boolean available(Constructor<T> ctor) {
-    ConstructionInfo<?> info = takeConstructionInfo(ctor);
-    return parameter.entrySet()
-      .stream()
-      .allMatch((e) -> info.isAssignable(e.getKey(), e.getValue()));
+    String[] names = properties.value();
+
+    namedType = new HashMap<>();
+
+    Class<?>[] types = constructor.getParameterTypes();
+    for (int i = 0; i < names.length; i++) {
+      namedType.put(names[i], types[i]);
+    }
+
+    this.names = names;
   }
 
-  @SneakyThrows
-  public T create(Constructor<T> ctor) {
-    ConstructionInfo<?> info = takeConstructionInfo(ctor);
-    Object[] args = Arrays.stream(info.names)
-      .map(parameter::get)
-      .toArray();
-    return ctor.newInstance(args);
+  public Class<?> getType(String name) {
+    return Objects.requireNonNull(namedType.get(name), "cannot find name:" + name + "type");
   }
 
-  private ConstructionInfo<T> takeConstructionInfo(Constructor<T> ctor) {
-    ConstructionInfo<T> info = cache.get(ctor);
-    return info == null ? new ConstructionInfo<>(ctor) : info;
+  public <E> boolean isAssignable(String name, Object element) {
+    return getType(name).isInstance(element);
   }
+
 
 }

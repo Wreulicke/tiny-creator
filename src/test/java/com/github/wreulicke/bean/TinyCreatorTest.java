@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.github.wreulicke;
+package com.github.wreulicke.bean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,6 +29,8 @@ import java.beans.ConstructorProperties;
 import java.util.HashMap;
 
 import org.junit.Test;
+
+import com.github.wreulicke.bean.TinyCreator;
 
 import lombok.Value;
 
