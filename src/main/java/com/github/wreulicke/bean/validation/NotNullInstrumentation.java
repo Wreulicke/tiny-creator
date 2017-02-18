@@ -62,7 +62,6 @@ public class NotNullInstrumentation implements ClassFileTransformer {
           String name = attribute.variableName(i + (Modifier.isStatic(method.getModifiers()) ? 0 : 1));
           for (Object annotation : annotations) {
             if (annotation instanceof NotNull) {
-              method.insertBefore("System.out.println(" + name + ");");
               method.insertBefore("java.util.Objects.requireNonNull($" + (i + 1) + ",\"" + name + " is required\");");
             }
           }
@@ -70,7 +69,6 @@ public class NotNullInstrumentation implements ClassFileTransformer {
       }
       return clazz.toBytecode();
     } catch (IOException | ClassNotFoundException | CannotCompileException e) {
-      e.printStackTrace();
       throw new RuntimeException(e);
     }
   }
