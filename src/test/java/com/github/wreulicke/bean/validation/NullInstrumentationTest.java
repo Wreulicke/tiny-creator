@@ -1,27 +1,41 @@
 package com.github.wreulicke.bean.validation;
 
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static com.github.wreulicke.bean.validation.ByteCodes.getByteCode;
+import static com.github.wreulicke.bean.validation.Instruments.forInstruments;
 
-import javax.validation.constraints.NotNull;
-
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.bytecode.SignatureAttribute;
-import javassist.bytecode.SignatureAttribute.MethodSignature;
-import javassist.bytecode.SignatureAttribute.ObjectType;
-import javassist.bytecode.SignatureAttribute.Type;
-import javassist.bytecode.SignatureAttribute.TypeParameter;
 import mockit.Mock;
 import mockit.MockUp;
 
 public class NullInstrumentationTest {
-  @SuppressWarnings("unchecked")
+
+  @BeforeClass
+  public static void setup() {
+
+  }
+
+  @AfterClass
+  public static void tearDown() {
+
+  }
+
+  @SuppressWarnings({
+    "unchecked",
+    "rawtypes"
+  })
   @Test
   public void test() throws Exception {
-    new MockUp<Object>(Class.forName("javassist.CtClassType")) {
+    new MockUp(Class.forName("javassist.CtClassType")) {
+      @Mock
+      public boolean isFrozen() {
+        return false;
+      }
+
       @Mock
       void checkModify() {}
 
@@ -30,22 +44,29 @@ public class NullInstrumentationTest {
         return true;
       }
     };
-    NotNullInstrumentation instrumentation = new NotNullInstrumentation(Instruments.mock(Example.class));
-    byte[] result = instrumentation.transform(getClass().getClassLoader(), Instruments.forInstruments(Example.class), null, null, ByteCodes
-      .getByteCode(Example.class));
-    ClassPool pool = ClassPool.getDefault();
-    CtClass ctClass = pool.get(Example.class.getName());
-    MethodSignature methodSignature = new MethodSignature(new TypeParameter[0], new Type[] {
-      new SignatureAttribute.ClassType("java.lang.String")
-    }, (Type) null, new ObjectType[0]);
-    ctClass.getMethod("test", methodSignature.encode())
-      .insertBefore("java.util.Objects.requireNonNull($1,\"notNullString\");");
+    NotNullInstrumentation inst = new NotNullInstrumentation(ClassPool.getDefault());
+    byte[] result = inst.transform(getClass().getClassLoader(), forInstruments(Example.class), null, null, getByteCode(Example.class));
 
-    assertThat(result).isEqualTo(ctClass.toBytecode());
+    // Path root = Paths.get(".")
+    // .toRealPath()
+    // .toAbsolutePath();
+    // Path temp = Files.createTempDirectory(root, "temp");
+    // Decompiler decompiler = new FernflowerDecompiler();
+    // Path path = Files.createTempFile(temp, "Example", ".class");
+    // ByteCodes.dumpByteCode(path, result);
+    //
+    // DecompilationResult decompilationResult = decompiler.decompileClassFile(root, path, temp);
+    // Optional<String> first = decompilationResult.getDecompiledFiles()
+    // .values()
+    // .stream()
+    // .findFirst();
+    // assertThat(first).matches(Optional::isPresent);
+    //
+    // Files.walk(temp)
+    // .map(Path::toFile)
+    // .forEach(File::deleteOnExit);
 
-  }
 
-  public static class Example {
-    public static void test(@NotNull String notNullString) {}
+
   }
 }
