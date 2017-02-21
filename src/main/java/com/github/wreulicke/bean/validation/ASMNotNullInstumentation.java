@@ -25,11 +25,22 @@ package com.github.wreulicke.bean.validation;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
+import java.lang.reflect.Modifier;
 import java.security.ProtectionDomain;
+import java.util.List;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.TypeReference;
+import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TypeAnnotationNode;
+import org.objectweb.asm.tree.VarInsnNode;
 
 public class ASMNotNullInstumentation implements ClassFileTransformer {
   @Override
@@ -39,7 +50,63 @@ public class ASMNotNullInstumentation implements ClassFileTransformer {
     ClassReader reader = new ClassReader(classfileBuffer);
     ClassNode node = new ClassNode();
     reader.accept(node, ClassReader.EXPAND_FRAMES);
+    new InnerNotNullInstrumentation(node).visit();
     node.accept(writer);
+
     return writer.toByteArray();
+  }
+
+  private static class InnerNotNullInstrumentation {
+    ClassNode node;
+
+    public InnerNotNullInstrumentation(ClassNode node) {
+      this.node = node;
+    }
+
+    public void visit() {
+      @SuppressWarnings("unchecked")
+      List<MethodNode> nodes = node.methods;
+      nodes.forEach(this::accept);
+    }
+
+    public void accept(MethodNode method) {
+      @SuppressWarnings("unchecked")
+      List<AnnotationNode>[] parameters = method.visibleParameterAnnotations;
+      if (parameters != null) {
+        for (int i = 0; i < parameters.length; i++) {
+          final int index = i + (Modifier.isStatic(method.access) ? 0 : 1);
+          List<AnnotationNode> annotations = parameters[i];
+          annotations.stream()
+            .map((annnotation) -> annnotation.desc)
+            .filter("Ljavax/validation/constraints/NotNull;"::equals)
+            .findFirst()
+            .ifPresent((found) -> {
+              method.instructions.insert(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/util/Objects", "requireNonNull",
+                "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object", false));
+              LocalVariableNode localVar = (LocalVariableNode) method.localVariables.get(index);
+              method.instructions.insert(new LdcInsnNode(localVar.name + " is required"));
+              method.instructions.insert(new VarInsnNode(Opcodes.ALOAD, index));
+            });;
+        }
+      }
+
+      @SuppressWarnings("unchecked")
+      List<TypeAnnotationNode> typeAnnotations = method.visibleTypeAnnotations;
+      if (typeAnnotations != null) {
+        typeAnnotations.stream()
+          .filter((annotation) -> {
+            return new TypeReference(annotation.typeRef).getSort() == TypeReference.METHOD_RECEIVER && "Ljavax/validation/constraints/NotNull;"
+              .equals(annotation.desc);
+          })
+          .findFirst()
+          .ifPresent((annotation) -> {
+            method.instructions.insert(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/util/Objects", "requireNonNull",
+              "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object", false));
+            method.instructions.insert(new LdcInsnNode("this is required"));
+            method.instructions.insert(new VarInsnNode(Opcodes.ALOAD, 0));
+          });
+
+      }
+    }
   }
 }

@@ -27,6 +27,9 @@ package com.github.wreulicke.bean.validation;
 import static com.github.wreulicke.bean.validation.ByteCodes.getByteCode;
 import static com.github.wreulicke.bean.validation.Instruments.forInstruments;
 
+import java.io.IOException;
+import java.lang.instrument.IllegalClassFormatException;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -58,38 +61,16 @@ public class NullInstrumentationTest {
       public boolean isFrozen() {
         return false;
       }
-
-      @Mock
-      void checkModify() {}
-
-      @Mock
-      public boolean isModified() {
-        return true;
-      }
     };
     NotNullInstrumentation inst = new NotNullInstrumentation(ClassPool.getDefault());
-    byte[] result = inst.transform(getClass().getClassLoader(), forInstruments(Example.class), null, null, getByteCode(Example.class));
+    // byte[] result =
+    inst.transform(getClass().getClassLoader(), forInstruments(Example.class), null, null, getByteCode(Example.class));
 
-    // Path root = Paths.get(".")
-    // .toRealPath()
-    // .toAbsolutePath();
-    // Path temp = Files.createTempDirectory(root, "temp");
-    // Decompiler decompiler = new FernflowerDecompiler();
-    // Path path = Files.createTempFile(temp, "Example", ".class");
-    // ByteCodes.dumpByteCode(path, result);
-    //
-    // DecompilationResult decompilationResult = decompiler.decompileClassFile(root, path, temp);
-    // Optional<String> first = decompilationResult.getDecompiledFiles()
-    // .values()
-    // .stream()
-    // .findFirst();
-    // assertThat(first).matches(Optional::isPresent);
-    //
-    // Files.walk(temp)
-    // .map(Path::toFile)
-    // .forEach(File::deleteOnExit);
+  }
 
-
-
+  @Test
+  public void asmTest() throws IllegalClassFormatException, IOException {
+    ASMNotNullInstumentation inst = new ASMNotNullInstumentation();
+    inst.transform(getClass().getClassLoader(), forInstruments(Example.class), null, null, getByteCode(Example.class));
   }
 }

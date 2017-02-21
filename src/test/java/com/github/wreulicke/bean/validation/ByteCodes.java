@@ -28,7 +28,13 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.function.UnaryOperator;
+
+import org.jboss.windup.decompiler.api.DecompilationResult;
+import org.jboss.windup.decompiler.api.Decompiler;
+import org.jboss.windup.decompiler.fernflower.FernflowerDecompiler;
 
 import javassist.CannotCompileException;
 import javassist.ClassPool;
@@ -54,5 +60,17 @@ public class ByteCodes {
       channel.write(ByteBuffer.wrap(bytes));
     }
 
+  }
+
+  public static DecompilationResult dumpAndDecomplie(UnaryOperator<Path> pathGenerator, byte[] bytes) throws IOException {
+    Path root = Paths.get(".")
+      .toRealPath()
+      .toAbsolutePath();
+    Path temp = Files.createTempDirectory(root, "temp");
+    Path path = pathGenerator.apply(temp);
+    dumpByteCode(path, bytes);
+    Decompiler decompiler = new FernflowerDecompiler();
+    DecompilationResult decompilationResult = decompiler.decompileClassFile(root, path, temp);
+    return decompilationResult;
   }
 }
