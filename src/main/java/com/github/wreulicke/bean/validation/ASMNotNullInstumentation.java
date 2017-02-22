@@ -35,6 +35,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.TypeReference;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -52,7 +53,6 @@ public class ASMNotNullInstumentation implements ClassFileTransformer {
     reader.accept(node, ClassReader.EXPAND_FRAMES);
     new InnerNotNullInstrumentation(node).visit();
     node.accept(writer);
-
     return writer.toByteArray();
   }
 
@@ -69,8 +69,25 @@ public class ASMNotNullInstumentation implements ClassFileTransformer {
       nodes.forEach(this::accept);
     }
 
+    @SuppressWarnings("unchecked")
     public void accept(MethodNode method) {
-      @SuppressWarnings("unchecked")
+      InsnList insnList = new InsnList();
+
+      List<TypeAnnotationNode> typeAnnotations = method.visibleTypeAnnotations;
+      if (typeAnnotations != null) {
+        typeAnnotations.stream()
+          .filter((annotation) -> {
+            return new TypeReference(annotation.typeRef).getSort() == TypeReference.METHOD_RECEIVER && "Ljavax/validation/constraints/NotNull;"
+              .equals(annotation.desc);
+          })
+          .findFirst()
+          .ifPresent((annotation) -> {
+            insnList.add(new VarInsnNode(Opcodes.ALOAD, 0));
+            insnList.add(new LdcInsnNode("this is required"));
+            insnList.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/util/Objects", "requireNonNull",
+              "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object", false));
+          });
+      }
       List<AnnotationNode>[] parameters = method.visibleParameterAnnotations;
       if (parameters != null) {
         for (int i = 0; i < parameters.length; i++) {
@@ -81,32 +98,15 @@ public class ASMNotNullInstumentation implements ClassFileTransformer {
             .filter("Ljavax/validation/constraints/NotNull;"::equals)
             .findFirst()
             .ifPresent((found) -> {
-              method.instructions.insert(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/util/Objects", "requireNonNull",
-                "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object", false));
               LocalVariableNode localVar = (LocalVariableNode) method.localVariables.get(index);
-              method.instructions.insert(new LdcInsnNode(localVar.name + " is required"));
-              method.instructions.insert(new VarInsnNode(Opcodes.ALOAD, index));
+              insnList.add(new VarInsnNode(Opcodes.ALOAD, index));
+              insnList.add(new LdcInsnNode(localVar.name + " is required"));
+              insnList.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/util/Objects", "requireNonNull",
+                "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object", false));
             });;
         }
       }
-
-      @SuppressWarnings("unchecked")
-      List<TypeAnnotationNode> typeAnnotations = method.visibleTypeAnnotations;
-      if (typeAnnotations != null) {
-        typeAnnotations.stream()
-          .filter((annotation) -> {
-            return new TypeReference(annotation.typeRef).getSort() == TypeReference.METHOD_RECEIVER && "Ljavax/validation/constraints/NotNull;"
-              .equals(annotation.desc);
-          })
-          .findFirst()
-          .ifPresent((annotation) -> {
-            method.instructions.insert(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/util/Objects", "requireNonNull",
-              "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object", false));
-            method.instructions.insert(new LdcInsnNode("this is required"));
-            method.instructions.insert(new VarInsnNode(Opcodes.ALOAD, 0));
-          });
-
-      }
+      method.instructions.add(insnList);
     }
   }
 }
