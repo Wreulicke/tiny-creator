@@ -106,7 +106,7 @@ public class ASMNotNullInstumentation implements ClassFileTransformer {
             });;
         }
       }
-      method.instructions.add(insnList);
+      method.instructions.insert(insnList);
     }
   }
 }
