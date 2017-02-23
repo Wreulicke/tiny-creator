@@ -68,6 +68,7 @@ public class ByteCodes {
       .toAbsolutePath();
     Path temp = Files.createTempDirectory(root, "temp");
     Path path = pathGenerator.apply(temp);
+    Files.createFile(path);
     dumpByteCode(path, bytes);
     Decompiler decompiler = new FernflowerDecompiler();
     DecompilationResult decompilationResult = decompiler.decompileClassFile(root, path, temp);

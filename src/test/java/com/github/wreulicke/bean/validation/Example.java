@@ -24,15 +24,35 @@
 package com.github.wreulicke.bean.validation;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import javax.validation.Validation;
 import javax.validation.constraints.NotNull;
+import javax.validation.executable.ExecutableValidator;
 
 public class Example {
   public static void staticMethod(@NotNull String notNullString) {}
 
   public void method(@NotNull String notNullString) {}
 
-  public void thisAnnotated(@NotNull Example this,@NotNull String notNullString) {}
+  public void thisAnnotated(@NotNull Example this,@NotNull String notNullString) {
+    try {
+      ExecutableValidator validator = Validation.buildDefaultValidatorFactory()
+        .getValidator()
+        .forExecutables();
+      Stream<String> stream = validator.validateParameters(this, Example.class.getMethod("thisAnnotated", String.class), new Object[] {
+        notNullString
+      })
+        .stream()
+        .map(v -> v.getMessage());
+      String message = stream.collect(Collectors.joining("\r\n"));;
+      throw new IllegalArgumentException(message);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+  }
 
   @NotNull
   public void methodAnnotated(@NotNull Example this,@NotNull String notNullString) {}
