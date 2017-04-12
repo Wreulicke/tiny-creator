@@ -72,6 +72,6 @@ public class NullInstrumentationTest {
   public void asmTest() throws IllegalClassFormatException, IOException {
     ASMNotNullInstumentation inst = new ASMNotNullInstumentation();
     byte[] result = inst.transform(getClass().getClassLoader(), forInstruments(Example.class), null, null, getByteCode(Example.class));
-    // ByteCodes.dumpAndDecomplie((p) -> p.resolve("Example.class"), result);
+    ByteCodes.dumpAndDecomplie((p) -> p.resolve("Example.class"), result);
   }
 }
