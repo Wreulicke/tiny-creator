@@ -64,6 +64,11 @@ public class MethodParameterValidationInjectorTest2 {
         }
         return classfileBuffer;
       });
+      try {
+        inst.redefineClasses(new ClassDefinition(Example.class, ByteCodes.getByteCode(Example.class)));
+      } catch (UnmodifiableClassException | ClassNotFoundException e) {
+        e.printStackTrace();
+      }
     }
   }
   public static class RestoreAgent {
@@ -86,14 +91,13 @@ public class MethodParameterValidationInjectorTest2 {
 
   @Test
   public void firstCase() throws IOException, NoSuchMethodException, SecurityException {
+    AgentLoader.loadAgentClass(InstrumentationAgent.class.getName(), "test");
     try {
-      AgentLoader.loadAgentClass(InstrumentationAgent.class.getName(), "test");
       new Example().testMethod(null, null);
       fail("not reach here");
     } catch (ConstraintException e) {
-    } finally {
-      AgentLoader.loadAgentClass(RestoreAgent.class.getName(), "");
     }
+    AgentLoader.loadAgentClass(RestoreAgent.class.getName(), "");
     new Example().testMethod(null, null);
   }
 }

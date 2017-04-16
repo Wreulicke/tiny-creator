@@ -31,7 +31,6 @@ import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.security.ProtectionDomain;
 
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.ea.agentloader.AgentLoader;
@@ -50,6 +49,11 @@ public class NullInstrumentationTest2 {
         }
         return classfileBuffer;
       });
+      try {
+        inst.redefineClasses(new ClassDefinition(Example.class, ByteCodes.getByteCode(Example.class)));
+      } catch (UnmodifiableClassException | ClassNotFoundException e) {
+        e.printStackTrace();
+      }
     }
   }
   public static class RestoreAgent {
@@ -62,6 +66,7 @@ public class NullInstrumentationTest2 {
         return classfileBuffer;
       });
       try {
+        inst.retransformClasses(Example.class);
         inst.redefineClasses(new ClassDefinition(Example.class, before));
       } catch (UnmodifiableClassException | ClassNotFoundException e) {
         e.printStackTrace();
@@ -70,13 +75,9 @@ public class NullInstrumentationTest2 {
 
   }
 
-  @BeforeClass
-  public static void setup() {
-    AgentLoader.loadAgentClass(HelloAgent.class.getName(), "Hello!");
-  }
-
   @Test
   public void test() {
+    AgentLoader.loadAgentClass(HelloAgent.class.getName(), "Hello!");
     try {
       new Example().method(null);
       fail("cannot reach here");
