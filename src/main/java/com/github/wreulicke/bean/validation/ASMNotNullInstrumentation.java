@@ -43,11 +43,11 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeAnnotationNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
-public class ASMNotNullInstumentation implements ClassFileTransformer {
+public class ASMNotNullInstrumentation implements ClassFileTransformer {
   @Override
   public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
     byte[] classfileBuffer) throws IllegalClassFormatException {
-    ClassWriter writer = new ClassWriter(0);
+    ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES + ClassWriter.COMPUTE_MAXS);
     ClassReader reader = new ClassReader(classfileBuffer);
     ClassNode node = new ClassNode();
     reader.accept(node, ClassReader.EXPAND_FRAMES);
@@ -85,7 +85,7 @@ public class ASMNotNullInstumentation implements ClassFileTransformer {
             insnList.add(new VarInsnNode(Opcodes.ALOAD, 0));
             insnList.add(new LdcInsnNode("this is required"));
             insnList.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/util/Objects", "requireNonNull",
-              "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object", false));
+              "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;", false));
           });
       }
       List<AnnotationNode>[] parameters = method.visibleParameterAnnotations;
@@ -102,11 +102,12 @@ public class ASMNotNullInstumentation implements ClassFileTransformer {
               insnList.add(new VarInsnNode(Opcodes.ALOAD, index));
               insnList.add(new LdcInsnNode(localVar.name + " is required"));
               insnList.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/util/Objects", "requireNonNull",
-                "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object", false));
+                "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;", false));
             });;
         }
       }
       method.instructions.insert(insnList);
+      method.visitMaxs(method.maxStack, method.maxLocals);
     }
   }
 }

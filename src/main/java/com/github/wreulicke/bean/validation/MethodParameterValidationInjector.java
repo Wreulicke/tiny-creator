@@ -51,7 +51,7 @@ public class MethodParameterValidationInjector implements Injector {
   }
 
   private void inject(MethodNode node, ClassNode clazzNode) {
-    if (Modifier.isStatic(node.access) || "<init>".equals(node.name)) {
+    if (Modifier.isStatic(node.access) || "<init>".equals(node.name) || "<cinit>".equals(node.name)) {
       return;
     }
 
@@ -65,35 +65,35 @@ public class MethodParameterValidationInjector implements Injector {
 
     list.add(new VarInsnNode(Opcodes.ASTORE, index));
     list.add(new VarInsnNode(Opcodes.ALOAD, index));
-    boolean isStatic = Modifier.isStatic(node.access);
-    if (isStatic) {
-      list.add(new InsnNode(Opcodes.ACONST_NULL));
-    }
-    else
-      list.add(new VarInsnNode(Opcodes.ALOAD, 0));
+    list.add(new VarInsnNode(Opcodes.ALOAD, 0));
+
     list.add(new LdcInsnNode(Type.getType("L" + clazzNode.name + ";")));
     list.add(new LdcInsnNode(node.name));
+
     @SuppressWarnings("unchecked")
     List<LocalVariableNode> variables = node.localVariables;
     Type[] args = Type.getArgumentTypes(node.desc);
+
     list.add(new LdcInsnNode(args.length));
     list.add(new TypeInsnNode(Opcodes.ANEWARRAY, "java/lang/Class"));
-    list.add(new InsnNode(Opcodes.DUP));
-    list.add(new InsnNode(Opcodes.ICONST_0));
+
     for (int i = 0; i < args.length; i++) {
-      int paramIndex = isStatic ? 0 : 1;
+      int paramIndex = 1 + i;
+      list.add(new InsnNode(Opcodes.DUP));
+      list.add(new LdcInsnNode(i));
       list.add(new LdcInsnNode(Type.getType(variables.get(paramIndex).desc)));
       list.add(new InsnNode(Opcodes.AASTORE));
     }
+
     list.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getMethod",
       "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", false));
 
     list.add(new LdcInsnNode(args.length));
     list.add(new TypeInsnNode(Opcodes.ANEWARRAY, "java/lang/Object"));
-    list.add(new InsnNode(Opcodes.DUP));
-    list.add(new InsnNode(Opcodes.ICONST_0));
     for (int i = 0; i < args.length; i++) {
-      int paramIndex = isStatic ? 0 : 1;
+      int paramIndex = i + 1;
+      list.add(new InsnNode(Opcodes.DUP));
+      list.add(new LdcInsnNode(i));
       list.add(new VarInsnNode(Opcodes.ALOAD, paramIndex));
       list.add(new InsnNode(Opcodes.AASTORE));
     }
@@ -101,6 +101,7 @@ public class MethodParameterValidationInjector implements Injector {
     list.add(new TypeInsnNode(Opcodes.ANEWARRAY, "java/lang/Class"));
     list.add(new MethodInsnNode(INVOKEINTERFACE, "javax/validation/executable/ExecutableValidator", "validateParameters",
       "(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;[Ljava/lang/Class;)Ljava/util/Set;", true));
+    list.add(new MethodInsnNode(INVOKESTATIC, "com/github/wreulicke/bean/validation/Constraints", "throwIfNeeded", "(Ljava/util/Set;)V", false));
     node.instructions.insert(list);
   }
 

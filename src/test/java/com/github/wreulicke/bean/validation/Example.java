@@ -23,6 +23,7 @@
  */
 package com.github.wreulicke.bean.validation;
 
+import java.lang.reflect.Method;
 import java.util.List;
 
 import javax.validation.Validation;
@@ -39,17 +40,24 @@ public class Example {
       ExecutableValidator validator = Validation.buildDefaultValidatorFactory()
         .getValidator()
         .forExecutables();
-      validator.validateParameters(this, Example.class.getMethod("thisAnnotated", String.class), new Object[] {
+      Method method = Example.class.getMethod("thisAnnotated", String.class);
+      Object[] args = new Object[] {
         notNullString
-      })
+      };
+      validator.validateParameters(this, method, args)
         .stream()
         .findFirst()
         .ifPresent((x) -> {
-          throw new RuntimeException(x.toString());
+          throw new RuntimeException(x.getPropertyPath()
+            .toString() + ":" + x.getMessage());
         });
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+
+  }
+
+  public void testMethod(@NotNull String a1, @NotNull String a2) throws NoSuchMethodException, SecurityException {
 
   }
 

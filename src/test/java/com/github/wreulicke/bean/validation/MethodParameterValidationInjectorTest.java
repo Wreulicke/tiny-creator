@@ -26,16 +26,19 @@ package com.github.wreulicke.bean.validation;
 import static com.github.wreulicke.bean.validation.ByteCodes.getByteCode;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 
 import org.junit.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.util.ASMifier;
+import org.objectweb.asm.util.TraceClassVisitor;
 
 public class MethodParameterValidationInjectorTest {
   @Test
   public void firstCase() throws IOException {
-    ClassWriter writer = new ClassWriter(0);
+    ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES + ClassWriter.COMPUTE_MAXS);
     ClassReader reader = new ClassReader(getByteCode(Example.class));
     ClassNode node = new ClassNode();
     reader.accept(node, ClassReader.EXPAND_FRAMES);
@@ -43,6 +46,15 @@ public class MethodParameterValidationInjectorTest {
     injector.inject(node);
     node.accept(writer);
     byte[] result = writer.toByteArray();
-    // ByteCodes.dumpAndDecomplie((p) -> p.resolve("Example.class"), result);
+    ByteCodes.dumpAndDecomplie((p) -> p.resolve("Example.class"), getByteCode(Example.class));
   }
+
+  @Test
+  public void test2() {
+    ClassReader reader = new ClassReader(getByteCode(Example.class));
+    TraceClassVisitor visitor = new TraceClassVisitor(null, new ASMifier(), new PrintWriter(System.out));
+    reader.accept(visitor, ClassReader.EXPAND_FRAMES);
+
+  }
+
 }
