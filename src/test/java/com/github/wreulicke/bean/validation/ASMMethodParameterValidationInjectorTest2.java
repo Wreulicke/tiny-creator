@@ -39,7 +39,7 @@ import org.objectweb.asm.tree.ClassNode;
 import com.ea.agentloader.AgentLoader;
 import com.github.wreulicke.bean.validation.Constraints.ConstraintException;
 
-public class MethodParameterValidationInjectorTest2 {
+public class ASMMethodParameterValidationInjectorTest2 {
   private static byte[] before;
 
   public static class InstrumentationAgent {
@@ -49,7 +49,7 @@ public class MethodParameterValidationInjectorTest2 {
         try {
           if ("com.github.wreulicke.bean.validation.Example".replaceAll("\\.", "/")
             .equals(className)) {
-            MethodParameterValidationInjector instrumentation = new MethodParameterValidationInjector();
+            ASMMethodParameterValidationInjector instrumentation = new ASMMethodParameterValidationInjector();
             before = classfileBuffer;
             ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES + ClassWriter.COMPUTE_MAXS);
             ClassReader reader = new ClassReader(classfileBuffer);
@@ -81,7 +81,7 @@ public class MethodParameterValidationInjectorTest2 {
         return classfileBuffer;
       });
       try {
-        inst.redefineClasses(new ClassDefinition(Example.class, before));
+        inst.redefineClasses(new ClassDefinition(Example.class, ByteCodes.getByteCode(Example.class)));
       } catch (UnmodifiableClassException | ClassNotFoundException e) {
         e.printStackTrace();
       }
@@ -99,5 +99,6 @@ public class MethodParameterValidationInjectorTest2 {
     }
     AgentLoader.loadAgentClass(RestoreAgent.class.getName(), "");
     new Example().testMethod(null, null);
+    new Example().method(null);
   }
 }

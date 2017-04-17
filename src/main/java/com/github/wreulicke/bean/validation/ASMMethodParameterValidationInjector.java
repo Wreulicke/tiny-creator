@@ -41,7 +41,7 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
-public class MethodParameterValidationInjector implements Injector {
+public class ASMMethodParameterValidationInjector implements Injector {
 
   @Override
   public void inject(ClassNode classNode) {
@@ -51,7 +51,8 @@ public class MethodParameterValidationInjector implements Injector {
   }
 
   private void inject(MethodNode node, ClassNode clazzNode) {
-    if (Modifier.isStatic(node.access) || "<init>".equals(node.name) || "<cinit>".equals(node.name)) {
+    if (Modifier.isStatic(node.access) || Modifier.isAbstract(node.access) || Modifier.isAbstract(node.access) || "<init>".equals(node.name) ||
+      "<clinit>".equals(node.name)) {
       return;
     }
 

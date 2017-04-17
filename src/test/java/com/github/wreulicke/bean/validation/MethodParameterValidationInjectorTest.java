@@ -23,27 +23,63 @@
  */
 package com.github.wreulicke.bean.validation;
 
-import static com.github.wreulicke.bean.validation.ByteCodes.getByteCode;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.lang.instrument.ClassDefinition;
+import java.lang.instrument.Instrumentation;
+import java.lang.instrument.UnmodifiableClassException;
+import java.security.ProtectionDomain;
 
 import org.junit.Test;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.tree.ClassNode;
+
+import com.ea.agentloader.AgentLoader;
+import com.github.wreulicke.bean.validation.Constraints.ConstraintException;
 
 public class MethodParameterValidationInjectorTest {
-  @Test
-  public void firstCase() throws IOException {
-    ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES + ClassWriter.COMPUTE_MAXS);
-    ClassReader reader = new ClassReader(getByteCode(Example.class));
-    ClassNode node = new ClassNode();
-    reader.accept(node, ClassReader.EXPAND_FRAMES);
-    MethodParameterValidationInjector injector = new MethodParameterValidationInjector();
-    injector.inject(node);
-    node.accept(writer);
-    byte[] result = writer.toByteArray();
-    // ByteCodes.dumpAndDecomplie((p) -> p.resolve("Example.class"), getByteCode(Example.class));
+  private static byte[] before;
+
+  public static class InstrumentationAgent {
+    public static void agentmain(String agentArgs, Instrumentation inst) {
+      inst.addTransformer((ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
+        byte[] classfileBuffer) -> {
+        if (className.equals("com.github.wreulicke.bean.validation.Example".replaceAll("\\.", "/"))) {
+          if (before == null)
+            before = classfileBuffer;
+          return new MethodParameterValidationInstrumentation().transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+        }
+        return classfileBuffer;
+      });
+    }
+  }
+  public static class RestoreAgent {
+    public static void agentmain(String agentArgs, Instrumentation inst) {
+      inst.addTransformer((ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
+        byte[] classfileBuffer) -> {
+        if (className.equals("com.github.wreulicke.bean.validation.Example".replaceAll("\\.", "/"))) {
+          return before;
+        }
+        return classfileBuffer;
+      });
+      try {
+        inst.redefineClasses(new ClassDefinition(Example.class, before));
+      } catch (UnmodifiableClassException | ClassNotFoundException e) {
+        e.printStackTrace();
+      }
+    }
+
   }
 
+  @Test
+  public void firstCase() throws IOException, NoSuchMethodException, SecurityException {
+    AgentLoader.loadAgentClass(InstrumentationAgent.class.getName(), "test");
+    try {
+      new Example().testMethod(null, null);
+      fail("not reach here");
+    } catch (ConstraintException e) {
+    }
+    AgentLoader.loadAgentClass(RestoreAgent.class.getName(), "");
+    new Example().testMethod(null, null);
+    new Example().method(null);
+  }
 }

@@ -27,8 +27,8 @@ package com.github.wreulicke.bean.validation;
 import static org.junit.Assert.fail;
 
 import java.lang.instrument.ClassDefinition;
+import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
-import java.lang.instrument.UnmodifiableClassException;
 import java.security.ProtectionDomain;
 
 import org.junit.Test;
@@ -40,18 +40,25 @@ public class NullInstrumentationTest2 {
 
   public static class HelloAgent {
     public static void agentmain(String agentArgs, Instrumentation inst) {
-      inst.addTransformer((ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
-        byte[] classfileBuffer) -> {
+      ClassFileTransformer transformer = (loader, className, classBeingRedefined, protectionDomain, classfileBuffer) -> {
+        System.out.println("test:" + className);
         if (className.equals("com.github.wreulicke.bean.validation.Example".replaceAll("\\.", "/"))) {
           ASMNotNullInstrumentation instrumentation = new ASMNotNullInstrumentation();
           before = classfileBuffer;
           return instrumentation.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
         }
         return classfileBuffer;
+      };
+      inst.addTransformer((loader, className, classBeingRedefined, protectionDomain, classfileBuffer) -> {
+        try {
+          return transformer.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+        } finally {
+          inst.removeTransformer(transformer);
+        }
       });
       try {
         inst.redefineClasses(new ClassDefinition(Example.class, ByteCodes.getByteCode(Example.class)));
-      } catch (UnmodifiableClassException | ClassNotFoundException e) {
+      } catch (Throwable e) {
         e.printStackTrace();
       }
     }
@@ -60,15 +67,16 @@ public class NullInstrumentationTest2 {
     public static void agentmain(String agentArgs, Instrumentation inst) {
       inst.addTransformer((ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
         byte[] classfileBuffer) -> {
+        System.out.println("test:" + className);
         if (className.equals("com.github.wreulicke.bean.validation.Example".replaceAll("\\.", "/"))) {
-          return before;
+          return ByteCodes.getByteCode(Example.class);
         }
         return classfileBuffer;
       });
       try {
         inst.retransformClasses(Example.class);
-        inst.redefineClasses(new ClassDefinition(Example.class, before));
-      } catch (UnmodifiableClassException | ClassNotFoundException e) {
+        inst.redefineClasses(new ClassDefinition(Example.class, ByteCodes.getByteCode(Example.class)));
+      } catch (Throwable e) {
         e.printStackTrace();
       }
     }
@@ -77,13 +85,15 @@ public class NullInstrumentationTest2 {
 
   @Test
   public void test() {
+    System.out.println("hello agent load");
     AgentLoader.loadAgentClass(HelloAgent.class.getName(), "Hello!");
     try {
       new Example().method(null);
       fail("cannot reach here");
     } catch (NullPointerException e) {
     }
-    AgentLoader.loadAgentClass(RestoreAgent.class.getName(), "test");
+    System.gc();
+    AgentLoader.loadAgentClass(RestoreAgent.class.getName(), "test", null, true, true, false);
     new Example().method(null);
 
   }
