@@ -34,7 +34,7 @@ dependencies {
     compile 'org.ow2.asm:asm-all:5.2'
 
     compile 'org.javassist:javassist:3.20.0-GA'
-    compile 'javax.validation:validation-api:2.0.0.Alpha1'
+    compile 'javax.validation:validation-api:2.0.1.Final'
     compile 'org.hibernate:hibernate-validator:6.0.13.Final'
     compile 'org.glassfish:javax.el:3.0.1-b08'
     compile 'com.ea.agentloader:ea-agent-loader:1.0.3'
