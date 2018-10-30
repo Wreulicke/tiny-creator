@@ -38,7 +38,7 @@ dependencies {
     compile 'org.hibernate:hibernate-validator:6.0.13.Final'
     compile 'org.glassfish:javax.el:3.0.1-b08'
     compile 'com.ea.agentloader:ea-agent-loader:1.0.3'
-    testCompile 'org.jmockit:jmockit:1.21'
+    testCompile 'org.jmockit:jmockit:1.43'
     testCompile 'javax.validation:validation-api:2.0.0.Alpha1'
     testCompile 'junit:junit:4.12'
     testCompile 'org.assertj:assertj-core:3.11.1'
