@@ -33,7 +33,7 @@ dependencies {
     compile 'org.jboss.windup.decompiler:decompiler-procyon:4.2.0.Final'
     compile 'org.ow2.asm:asm-all:5.2'
 
-    compile 'org.javassist:javassist:3.24.0-GA'
+    compile 'org.javassist:javassist:3.24.1-GA'
     compile 'javax.validation:validation-api:2.0.1.Final'
     compile 'org.hibernate:hibernate-validator:6.0.13.Final'
     compile 'org.glassfish:javax.el:3.0.1-b11'
